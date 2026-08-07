@@ -591,21 +591,28 @@ const S = {
 };
 
 async function init(){
+  console.log('[RECLAIM] init start');
   if(!firebaseConfigured()){
+    console.log('[RECLAIM] no firebase config — showing setup screen');
     render(); // shows setup screen
     return;
   }
   try{
     app = initializeApp(firebaseConfig);
+    console.log('[RECLAIM] firebase app initialized');
     db = getFirestore(app);
+    console.log('[RECLAIM] firestore instance created, checking seed...');
     await seedIfEmpty();
+    console.log('[RECLAIM] seed check complete, attaching listeners...');
     watchCollections();
+    console.log('[RECLAIM] listeners attached, waiting for first snapshot');
   }catch(e){
-    console.error(e);
+    console.error('[RECLAIM] init failed:', e);
     S.syncError = true;
     render();
   }
 }
+window.RECLAIM_STATE = S; // for manual inspection: type RECLAIM_STATE in console
 
 function showToast(msg, icon){
   S.toast = {msg, icon: icon || '✨'};
@@ -674,6 +681,7 @@ function handleImageInput(inputEl, cb){
    Rendering
    ============================================================ */
 function render(){
+  console.log('[RECLAIM] render() — view=', S.view, 'loaded=', S.loaded, 'user=', !!S.user, 'syncError=', S.syncError, 'items=', S.items.length);
   const app_el = document.getElementById('app');
 
   if(!firebaseConfigured()){
