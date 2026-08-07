@@ -7,31 +7,6 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 
-<!-- Firebase (free tier) powers real-time sync between every student who opens this page.
-     See the CONFIG block near the top of the <script> below for setup steps. -->
-<!-- Firebase -->
-<script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
-    import { getFirestore } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
-  
-    const firebaseConfig = {
-      apiKey: "AIzaSyDT24E05fgYqKOOFIKg7ZkUZd6SYXy5R14",
-      authDomain: "ia-cs-hl-agnes.firebaseapp.com",
-      projectId: "ia-cs-hl-agnes",
-      storageBucket: "ia-cs-hl-agnes.firebasestorage.app",
-      messagingSenderId: "352389928899",
-      appId: "1:352389928899:web:383186e7ca73bf92c88f76",
-      measurementId: "G-Z5M5EVMY41"
-    };
-  
-    // Initialize Firebase
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-  
-    console.log("✅ Firebase connected!");
-    window.db = db; // Makes Firestore accessible elsewhere in your code
-  </script>
-
 <style>
   :root{
     --bg-1:#fff89a; --bg-2:#fff5d8; --bg-deep:#fffcf4;
@@ -453,33 +428,39 @@
 <div class="brandbar"><div class="pill">🤟👽 <span>RECLAIM — Pradita Lost &amp; Found</span></div></div>
 <div id="app"></div>
 
-<script>
+<!--
+  ============================================================
+  RECLAIM — single module script.
+  Firebase init + all app logic live together here so imports
+  (modular SDK) and the rest of the code share the same scope.
+  Everything below runs as an ES module — that's required
+  because Firebase's modern SDK is import-based, not the old
+  global `firebase.xxx()` style.
+  ============================================================
+-->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.17.1/firebase-app.js";
+import {
+  getFirestore, collection, doc, setDoc, updateDoc,
+  onSnapshot, getDocs, query, limit, writeBatch
+} from "https://www.gstatic.com/firebasejs/12.17.1/firebase-firestore.js";
+
 /* ============================================================
    RECLAIM — CONFIG
    ------------------------------------------------------------
-   To deploy on GitHub Pages with real syncing between every
-   student who opens the site, create a free Firebase project:
-
-   1. Go to https://console.firebase.google.com -> Add project.
-   2. Inside the project: Build -> Firestore Database -> Create
-      database -> Start in TEST MODE (fine for a class project;
-      lock it down later, see note at bottom of this file).
-   3. Project settings (gear icon) -> General -> "Your apps" ->
-      Add app -> Web (</>) -> register it -> copy the
-      firebaseConfig object it gives you -> paste it below,
-      replacing the placeholder.
-   4. Commit this file to a GitHub repo -> Settings -> Pages ->
-      deploy from the main branch. Every student who opens the
-      resulting URL now reads/writes the SAME Firestore database,
-      live, with no server for you to run.
+   Paste your real Firebase config below (Project settings ->
+   General -> "Your apps" -> Web app -> config snippet).
+   This key is meant to be public for web apps — access control
+   is enforced by Firestore Security Rules, not by hiding this.
    ============================================================ */
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  projectId: "YOUR_PROJECT",
-  storageBucket: "YOUR_PROJECT.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID",
+  apiKey: "AIzaSyDT24E05fgYqKOOFIKg7ZkUZd6SYXy5R14",
+  authDomain: "ia-cs-hl-agnes.firebaseapp.com",
+  projectId: "ia-cs-hl-agnes",
+  storageBucket: "ia-cs-hl-agnes.firebasestorage.app",
+  messagingSenderId: "352389928899",
+  appId: "1:352389928899:web:383186e7ca73bf92c88f76",
+  measurementId: "G-Z5M5EVMY41"
 };
 
 // Student ID format: "25082" prefix shared by everyone, followed by
@@ -530,19 +511,13 @@ function todayISO(){ return new Date().toISOString().slice(0,10); }
 function normalize(s){ return (s||'').toString().trim().toLowerCase().replace(/\s+/g,' '); }
 
 /* ============================================================
-   Firestore data layer
+   Firestore data layer (modular SDK)
    ============================================================ */
+let app = null;
 let db = null;
-let usingFirebase = false;
 
 function firebaseConfigured(){
   return firebaseConfig.apiKey && firebaseConfig.apiKey !== "YOUR_API_KEY";
-}
-
-function initFirebase(){
-  firebase.initializeApp(firebaseConfig);
-  db = firebase.firestore();
-  usingFirebase = true;
 }
 
 function seedData(){
@@ -566,32 +541,33 @@ function seedData(){
 }
 
 async function seedIfEmpty(){
-  const snap = await db.collection('items').limit(1).get();
+  const q = query(collection(db, 'items'), limit(1));
+  const snap = await getDocs(q);
   if(snap.empty){
     const {items, history} = seedData();
-    const batch = db.batch();
-    items.forEach(it => batch.set(db.collection('items').doc(it.id), it));
-    history.forEach(h => batch.set(db.collection('history').doc(uid()), h));
+    const batch = writeBatch(db);
+    items.forEach(it => batch.set(doc(db, 'items', it.id), it));
+    history.forEach(h => batch.set(doc(db, 'history', uid()), h));
     await batch.commit();
   }
 }
 
 function watchCollections(){
-  db.collection('items').onSnapshot(snap => {
+  onSnapshot(collection(db, 'items'), snap => {
     S.items = snap.docs.map(d => ({id:d.id, ...d.data()}));
     S.loaded = true;
     render();
   }, err => { console.error(err); S.syncError = true; render(); });
 
-  db.collection('history').onSnapshot(snap => {
+  onSnapshot(collection(db, 'history'), snap => {
     S.history = snap.docs.map(d => d.data());
     render();
-  });
+  }, err => console.error(err));
 }
 
-async function addItemDoc(item){ await db.collection('items').doc(item.id).set(item); }
-async function updateItemDoc(id, patch){ await db.collection('items').doc(id).update(patch); }
-async function addHistoryDoc(entry){ await db.collection('history').doc(uid()).set(entry); }
+async function addItemDoc(item){ await setDoc(doc(db, 'items', item.id), item); }
+async function updateItemDoc(id, patch){ await updateDoc(doc(db, 'items', id), patch); }
+async function addHistoryDoc(entry){ await setDoc(doc(db, 'history', uid()), entry); }
 
 /* ============================================================
    App state
@@ -614,14 +590,16 @@ const S = {
   claimError: '',
 };
 
-function init(){
+async function init(){
   if(!firebaseConfigured()){
     render(); // shows setup screen
     return;
   }
   try{
-    initFirebase();
-    seedIfEmpty().then(watchCollections);
+    app = initializeApp(firebaseConfig);
+    db = getFirestore(app);
+    await seedIfEmpty();
+    watchCollections();
   }catch(e){
     console.error(e);
     S.syncError = true;
@@ -696,26 +674,26 @@ function handleImageInput(inputEl, cb){
    Rendering
    ============================================================ */
 function render(){
-  const app = document.getElementById('app');
+  const app_el = document.getElementById('app');
 
   if(!firebaseConfigured()){
-    app.innerHTML = setupView();
+    app_el.innerHTML = setupView();
     return;
   }
   if(S.syncError){
-    app.innerHTML = `<div class="shell centered"><div class="setup-card"><h1>⚠️ Couldn't connect</h1><p class="lede">Double-check your Firebase config values and that Firestore is enabled for the project, then reload this page.</p></div></div>`;
+    app_el.innerHTML = `<div class="shell centered"><div class="setup-card"><h1>⚠️ Couldn't connect</h1><p class="lede">Double-check your Firebase config values, that Firestore is enabled for the project, and that your Firestore security rules allow read/write, then reload this page.</p></div></div>`;
     return;
   }
   if(!S.loaded){
-    app.innerHTML = `<div class="shell centered"><div style="font-family:var(--font-display);font-weight:700;color:var(--ink);font-size:16px;">Connecting to RECLAIM…</div></div>`;
+    app_el.innerHTML = `<div class="shell centered"><div style="font-family:var(--font-display);font-weight:700;color:var(--ink);font-size:16px;">Connecting to RECLAIM…</div></div>`;
     return;
   }
   if(!S.user){
-    app.innerHTML = loginView();
+    app_el.innerHTML = loginView();
     attachLoginHandlers();
     return;
   }
-  app.innerHTML = `
+  app_el.innerHTML = `
     <div class="shell">
       ${sidebarView()}
       <div class="main">
@@ -739,7 +717,7 @@ function setupView(){
         <li>Build → Firestore Database → Create database → Start in test mode</li>
         <li>Project settings → General → "Your apps" → Add app → Web → register</li>
         <li>Copy the <code>firebaseConfig</code> object it gives you</li>
-        <li>Paste it into the <code>firebaseConfig</code> constant near the top of this file's <code>&lt;script&gt;</code></li>
+        <li>Paste it into the <code>firebaseConfig</code> constant near the top of this file's module <code>&lt;script&gt;</code></li>
         <li>Save, commit to your GitHub repo, and reload this page</li>
       </ol>
     </div>
@@ -1196,7 +1174,14 @@ function attachHandlers(){
         status: 'open', createdAt: todayISO(),
       };
       const match = kind === 'lost' ? findMatch(item) : null;
-      await addItemDoc(item);
+      try{
+        await addItemDoc(item);
+      }catch(e){
+        console.error(e);
+        showToast("Couldn't save — check your Firestore rules / connection", '⚠️');
+        submitBtn.disabled = false;
+        return;
+      }
       S.pendingImage = null;
 
       if(kind === 'lost'){
@@ -1267,9 +1252,16 @@ function attachHandlers(){
         }
       }
       confirmClaim.disabled = true;
-      await updateItemDoc(item.id, {status:'claimed'});
-      if(S.lostContextId){ await updateItemDoc(S.lostContextId, {status:'claimed'}); }
-      await addHistoryDoc({date: todayISO(), name: S.user.name, item: item.name, action: 'claimed'});
+      try{
+        await updateItemDoc(item.id, {status:'claimed'});
+        if(S.lostContextId){ await updateItemDoc(S.lostContextId, {status:'claimed'}); }
+        await addHistoryDoc({date: todayISO(), name: S.user.name, item: item.name, action: 'claimed'});
+      }catch(e){
+        console.error(e);
+        showToast("Couldn't save the claim — check your connection", '⚠️');
+        confirmClaim.disabled = false;
+        return;
+      }
       go('claimSuccess', {selectedId: item.id});
     };
   }
