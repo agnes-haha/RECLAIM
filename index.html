@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RECLAIM — Pradita Lost &amp; Found</title>
+<title>RECLAIM - Pradita Lost &amp; Found</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 
@@ -533,9 +533,9 @@ function seedData(){
     {id:uid(), kind:'found', category:'stationery', name:'Novel', location:'Study room 2', date:'2026-03-05', details:'Paperback, dog-eared cover', secret:'', image:null, reporterName:'Sam', reporterId:'25082010', status:'claimed', createdAt:'2026-03-05'},
   ];
   const history = [
-    {date:'2026-03-03', name:'Maryanto', item:'MacBook', action:'claimed'},
-    {date:'2026-03-05', name:'Marcus', item:'Novel', action:'claimed'},
-    {date:'2026-03-07', name:'John', item:'MacBook Adaptor', action:'claimed'},
+    {date:'2026-03-03', name:'Emu Otori', item:'MacBook', action:'claimed'},
+    {date:'2026-03-05', name:'Sumaryono', item:'Novel', action:'claimed'},
+    {date:'2026-03-07', name:'coolguy', item:'MacBook Adaptor', action:'claimed'},
   ];
   return {items, history};
 }
@@ -759,12 +759,12 @@ function loginView(){
       <div class="tag-line">A digital lost &amp; found platform 🤟</div>
       <div class="field">
         <label>Full name</label>
-        <input class="input" id="loginName" placeholder="e.g. Ray Nakamura">
+        <input class="input" id="loginName" placeholder="e.g. Hatsune Miku">
       </div>
       <div class="field" id="idField">
         <label>Student ID</label>
         <input class="input" id="loginId" placeholder="e.g. ${SCHOOL_ID_PREFIX}007">
-        <div class="hint">Format: ${SCHOOL_ID_PREFIX} + your roster number</div>
+        <div class="hint">Format: ${SCHOOL_ID_PREFIX} + your number</div>
         <div class="err">That doesn't look like a valid student ID (should start with ${SCHOOL_ID_PREFIX}).</div>
       </div>
       <button class="btn btn-primary btn-block" id="loginBtn">Proceed →</button>
@@ -832,23 +832,23 @@ function homeView(){
     <div class="action-grid">
       <button class="action-card lost" data-nav="reportLost">
         <div class="aic">😱</div>
-        <div class="att">I lost something</div>
-        <div class="ads">Tell us what's missing — we'll check it against everything that's been turned in.</div>
+        <div class="att">I lost something!!</div>
+        <div class="ads">OMG NOOO, tell us what's missing, then we'll check it against everything that's been turned in >:D</div>
       </button>
       <button class="action-card found" data-nav="reportFound">
         <div class="aic">🙌</div>
-        <div class="att">I found something</div>
-        <div class="ads">Hand it in digitally so its owner can find their way back to it.</div>
+        <div class="att">I found something!!</div>
+        <div class="ads">WOW COOL!! hand it in digitally so its owner can find their way back to it! thankies!</div>
       </button>
       <button class="action-card browse" data-nav="browse">
         <div class="aic">🔎</div>
-        <div class="att">Check what's lost</div>
-        <div class="ads">Browse open reports and recently found items on Pradita.</div>
+        <div class="att">check what's lost</div>
+        <div class="ads">browse open reports and recently found items in Pradita.</div>
       </button>
       <button class="action-card history" data-nav="history">
         <div class="aic">🗂️</div>
         <div class="att">History</div>
-        <div class="ads">See everything that's been successfully reclaimed.</div>
+        <div class="ads">see everything that's been successfully reclaimed >:D</div>
       </button>
     </div>
     ${recentStrip()}
